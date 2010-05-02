@@ -20,7 +20,7 @@ $JS_FILES = array(
 
   'src/core/prelude.js',
 
-  'src/core/api.js',
+  'src/core/api_graph.js',
   'src/core/auth.js',
   'src/core/component.js',
   'src/core/content.js',

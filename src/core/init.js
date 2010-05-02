@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- *
+ * This file has been changed from the original Facebook version to allow
+ * connecting to external data sources.
  *
  * JavaScript library providing Facebook Connect integration.
  *
@@ -167,6 +168,16 @@ FB.provide('', {
           FB.Dom.ready(FB.XFBML.parse);
         }
       }, 0);
+    }
+
+    // Allow clients to use alternate graph servers
+    if (options.external_domains) {
+      FB._domain.external = options.external_domains;
+
+      // Add fb:/ as an external server for consistency
+      FB._domain.external.fb = "https://graph.facebook.com/";
+    } else {
+      FB._domain.external = {};
     }
   }
 });

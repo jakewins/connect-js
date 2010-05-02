@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- *
+ * This file has been modified from the original facebook implementation, to 
+ * add support for connecting to more datasources than just facebook.
  *
  * Contains the public method ``FB.api`` and the internal implementation
  * ``FB.ApiServer``.
@@ -234,6 +235,7 @@ FB.provide('ApiServer', {
   rest: function(params, cb) {
     // this is an optional dependency on FB.Auth
     // Auth.revokeAuthorization affects the session
+    
     if (FB.Auth &&
         params.method.toLowerCase() === 'auth.revokeauthorization') {
       var old_cb = cb;
@@ -301,7 +303,8 @@ FB.provide('ApiServer', {
     }
     params.callback = 'FB.ApiServer._callbacks.' + g;
 
-    var url = FB._domain[domain] + path + '?' + FB.QS.encode(params);
+    var url = FB.ApiServer.url(domain, path, params);
+
     if (url.length > 2000) {
       throw new Error('JSONP only support a maximum of 2000 bytes of input.');
     }
@@ -341,6 +344,8 @@ FB.provide('ApiServer', {
         url  = FB._domain[domain] + path,
         body = FB.QS.encode(params);
 
+      url = FB.ApiServer.url(domain, path, params, false);
+
       if (method === 'get') {
         // convert GET to POST if needed based on URL length
         if (url.length + body.length > 2000) {
@@ -373,5 +378,36 @@ FB.provide('ApiServer', {
         delete FB.ApiServer._callbacks[reqId];
       };
     });
+  },
+
+  /**
+   * Namespace-enabled url generator. Optionally allows paths like "somenamespace:/me/friends".
+   *
+   * @access private
+   * @param domain       {String}    the domain key, one of 'api' or 'graph'
+   * @param path         {String}    the request path
+   * @param params       {Object}    the parameters for the query
+   * @param appendParams {Boolean}   optional, set to false to not add params to the url (used by the flash fallback)
+   */
+  url:function(domain, path, params, appendParams) {
+    appendParams = appendParams || true;
+    var url = FB._domain[domain] + path;
+
+    // Override URL if there is a recognized namespace specified
+    for( namespace in FB._domain.external ) {
+      if ( path.substr(0, namespace.length + 1) === namespace + ":") {
+        url = FB._domain.external[namespace] + path.replace(namespace + ":/","");
+
+        // Temporary hack: Don't send the FB access token to external domains
+        // This is due to change as OpenAuth is enabled on external domains.
+        if(namespace !== "fb" && params.access_token) {
+          delete(params.access_token);
+        }
+
+        break;
+      }
+    }
+
+    return (appendParams) ? url + '?' + FB.QS.encode(params) : url;
   }
 });
